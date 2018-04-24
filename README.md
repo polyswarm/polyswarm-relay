@@ -13,6 +13,11 @@ We have it intentionally setup with a bridge root element, for further
 customization down the road.
 
 ```toml
+[bridge]
+    wallet = "0x0000000000000000000000000000000000000000"
+    password = "password"
+    path = "~/NectarToken.json"
+    
 [bridge.main]
     name = "Main"
     host = "ws://localhost:8546"
