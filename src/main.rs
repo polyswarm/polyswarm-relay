@@ -36,8 +36,12 @@ fn main() {
     let side = configuration.bridge.side;
 
     // Stand up the networks in the bridge
-    let private = relay::Network::new(&main.name, &main.host, &main.token, &main.relay);
-    let poa = relay::Network::new(&side.name, &side.host, &side.token, &side.relay);
+    let (_main_eloop, main_ws) = web3::transports::WebSocket::new(&main.host).unwrap();
+
+    let private = relay::Network::new(&main.name, main_ws.clone(), &main.token, &main.relay);
+
+    let (_side_eloop, side_ws) = web3::transports::WebSocket::new(&side.host).unwrap();
+    let poa = relay::Network::new(&side.name, side_ws.clone(), &side.token, &side.relay);
 
     // Create the bridge
     let mut bridge = relay::Bridge::new(&wallet, &password, &abi, private.clone(), poa.clone());

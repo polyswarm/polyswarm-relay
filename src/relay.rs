@@ -4,6 +4,8 @@ extern crate ethabi;
 use web3::futures::{Future, Stream};
 use web3::types::{FilterBuilder, H256, Bytes, Address, U256};
 use web3::contract::{Contract, Options};
+use web3::transports::ws::WebSocket;
+use web3::api::Web3;
 use ethabi::{EventParam, Event, ParamType, Hash};
 use std::sync::{mpsc, Arc, Mutex};
 use std::{thread};
@@ -91,7 +93,7 @@ impl Bridge {
         mint_main.join().unwrap();
     }
 
-    pub fn stop(&mut self) {
+    pub fn stop(self) {
         self.main.cancel();
         self.side.cancel();
     }
@@ -100,25 +102,27 @@ impl Bridge {
 #[derive(Clone)]
 pub struct Network {
     name: String,
-    host: String,
+    web3: Web3<WebSocket>,
     contracts: Contracts,
     run: Arc<Mutex<bool>>,
     tx: Arc<Mutex<Option<mpsc::Sender<Transfer>>>>,
 }
 
 impl Network {
-    pub fn new(name: &str, host: &str, token: &str, relay: &str) -> Network {
+    pub fn new(name: &str, ws: WebSocket, token: &str, relay: &str) -> Network {
+        let web3 = web3::Web3::new(ws);
         Network {
             name: name.to_string(),
-            host: host.to_string(),
+            web3: web3,
             contracts: Contracts::new(token, relay),
             run: Arc::new(Mutex::new(false)),
             tx: Arc::new(Mutex::new(None)),
         }
     }
 
-    pub fn cancel(&mut self) {
+    pub fn cancel(self) {
         *self.run.lock().unwrap() = false;
+        drop(self.web3);
         let mut lock = self.tx.lock().unwrap();
         if let Some(tx) = lock.clone() {
             drop(tx);
@@ -132,10 +136,8 @@ impl Network {
 
     pub fn mint(&self, abi: &ethabi::Contract, wallet: &Address, password: &str, sender: &Address, value: U256) {
         println!("{}: Minting {} for {:?}.", self.name.clone(), value, sender);
-        let (_eloop, ws) = web3::transports::WebSocket::new(&self.host).unwrap();
-        let web3 = web3::Web3::new(ws.clone());
-        let contract = Contract::new(web3.eth(), self.contracts.token_addr.clone(), abi.clone());
-        web3.personal().unlock_account(wallet.clone(), password, Some(0xffff))
+        let contract = Contract::new(self.web3.eth(), self.contracts.token_addr.clone(), abi.clone());
+        self.web3.personal().unlock_account(wallet.clone(), password, Some(0xffff))
             .then(|_| {
                 return contract.call("mint", (sender.clone(), value), wallet.clone(), Options::default());
             })
@@ -158,9 +160,7 @@ impl Network {
 
         // Start listening to events
         // Open Websocket and create RPC conn
-        let (_eloop, ws) = web3::transports::WebSocket::new(&self.host).unwrap();
-        let web3 = web3::Web3::new(ws.clone());
-        let mut sub = web3.eth_subscribe().subscribe_logs(fb.build()).wait().unwrap();
+        let mut sub = self.web3.eth_subscribe().subscribe_logs(fb.build()).wait().unwrap();
 
         println!("Got subscription id: {:?}", sub.id());
 
@@ -195,7 +195,6 @@ impl Network {
             .wait()
             .unwrap();
         sub.unsubscribe();
-        drop(web3);
     }
 }
 
