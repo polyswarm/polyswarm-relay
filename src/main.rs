@@ -27,6 +27,7 @@ fn main() {
         .expect("You must pass a config file.");
     let configuration = config::read_config(config_file);
 
+    let abi = configuration.bridge.path;
     let wallet = configuration.bridge.wallet;
     // I don't plan on having the password in the config for long. Will prompt.
     let password = configuration.bridge.password;
@@ -39,15 +40,15 @@ fn main() {
     let poa = relay::Network::new(&side.name, &side.host, &side.token, &side.relay);
 
     // Create the bridge
-    let mut bridge = relay::Bridge::new(&wallet, &password, private.clone(), poa.clone());
+    let mut bridge = relay::Bridge::new(&wallet, &password, &abi, private.clone(), poa.clone());
 
     // Kill the bridge & close subscriptions on Ctrl-C
-    let b = bridge.clone();
-    ctrlc::set_handler(move || {
-        println!("\rExiting...");
-        let mut a = b.clone();
-        a.stop();
-    }).expect("Unable to setup Ctrl-C handler.");
+    // let b = bridge.clone();
+    // ctrlc::set_handler(move || {
+    //     println!("\rExiting...");
+    //     let mut a = b.clone();
+    //     a.stop();
+    // }).expect("Unable to setup Ctrl-C handler.");
 
     // Start relay.
     bridge.start();

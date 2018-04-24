@@ -12,6 +12,7 @@ pub struct Config {
 pub struct Bridge {
     pub wallet: String,
     pub password: String,
+    pub path: String,
     pub main: Network,
     pub side: Network,
 }
