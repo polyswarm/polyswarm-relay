@@ -136,7 +136,7 @@ impl Network {
 
     pub fn withdraw(&self, abi: &ethabi::Contract, wallet: &Address, password: &str, tx_hash: &H256, sender: &Address, value: U256) {
         println!("{}: Withdrawing {} to {:?}.", self.name.clone(), value, sender);
-        let contract = Contract::new(self.web3.eth(), self.contracts.token_addr.clone(), abi.clone());
+        let contract = Contract::new(self.web3.eth(), self.contracts.relay_addr.clone(), abi.clone());
         self.web3.personal().unlock_account(wallet.clone(), password, Some(0xffff))
             .then(|_| {
                 return contract.call("processWithdrawal", (tx_hash.clone(), sender.clone(), value), wallet.clone(), Options::default());
