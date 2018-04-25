@@ -58,12 +58,12 @@ impl Bridge {
             main_listen.listen();
         });
 
-        // main mint
-        let main_mint = self.main.clone();
-        let mint_main = thread::spawn(move || {
+        // main withdraw
+        let main_withdraw = self.main.clone();
+        let withdraw_main = thread::spawn(move || {
             let mut iter = to_main_rx.iter();
             while let Some(transfer) = iter.next() {
-                main_mint.mint(&abi, &wallet, &password, &transfer.sender, *transfer.amount);
+                main_withdraw.withdraw(&abi, &wallet, &password, &transfer.tx_hash, &transfer.sender, *transfer.amount);
             }
         });
 
@@ -77,20 +77,20 @@ impl Bridge {
         let wallet = self.wallet.clone();
         let password = self.password.clone();
 
-        // side mint
-        let side_mint = self.side.clone();
-        let mint_side = thread::spawn(move || {
+        // side withdraw
+        let side_withdraw = self.side.clone();
+        let withdraw_side = thread::spawn(move || {
             let mut iter = to_side_rx.iter();
             while let Some(transfer) = iter.next() {
-                side_mint.mint(&abi, &wallet, &password, &transfer.sender, *transfer.amount);
+                side_withdraw.withdraw(&abi, &wallet, &password, &transfer.tx_hash, &transfer.sender, *transfer.amount);
             }
         });
 
         // No worries about a deadlock. None of these depend on one another.
         main.join().unwrap();
         side.join().unwrap();
-        mint_side.join().unwrap();
-        mint_main.join().unwrap();
+        withdraw_side.join().unwrap();
+        withdraw_main.join().unwrap();
     }
 
     pub fn stop(self) {
@@ -134,12 +134,12 @@ impl Network {
         *self.tx.lock().unwrap() = Some(sender);
     }
 
-    pub fn mint(&self, abi: &ethabi::Contract, wallet: &Address, password: &str, sender: &Address, value: U256) {
-        println!("{}: Minting {} for {:?}.", self.name.clone(), value, sender);
+    pub fn withdraw(&self, abi: &ethabi::Contract, wallet: &Address, password: &str, tx_hash: &H256, sender: &Address, value: U256) {
+        println!("{}: Withdrawing {} to {:?}.", self.name.clone(), value, sender);
         let contract = Contract::new(self.web3.eth(), self.contracts.token_addr.clone(), abi.clone());
         self.web3.personal().unlock_account(wallet.clone(), password, Some(0xffff))
             .then(|_| {
-                return contract.call("mint", (sender.clone(), value), wallet.clone(), Options::default());
+                return contract.call("processWithdrawal", (tx_hash.clone(), sender.clone(), value), wallet.clone(), Options::default());
             })
             .wait()
             .unwrap();
@@ -186,7 +186,8 @@ impl Network {
                     if let Some(tx) = arc_tx.lock().unwrap().clone() {
                         let amount = U256::from(&d[..]);
                         let from = Address::from(x.topics[1]);
-                        let transfer = Transfer::new(&from, &amount);
+                        let tx_hash = x.transaction_hash.unwrap();
+                        let transfer = Transfer::new(&tx_hash, &from, &amount);
                         tx.send(transfer).unwrap();
                     }
                 }
@@ -233,8 +234,6 @@ impl Contracts{
         }
     }
 
-
-
     ///
     /// # Generate Topic Filter
     ///
@@ -273,13 +272,15 @@ impl Contracts{
 }
 
 pub struct Transfer {
+    pub tx_hash: Arc<H256>,
     pub sender: Arc<Address>,
     pub amount: Arc<U256>,
 }
 
 impl Transfer {
-    pub fn new(sender: &Address, amount: &U256) -> Transfer {
+    pub fn new(tx_hash: &H256, sender: &Address, amount: &U256) -> Transfer {
         Transfer {
+            tx_hash: Arc::new(tx_hash.clone()),
             sender: Arc::new(sender.clone()),
             amount: Arc::new(amount.clone()),
         }
