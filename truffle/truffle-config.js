@@ -3,16 +3,16 @@ require('babel-polyfill');
 
 module.exports = {
   networks: {
-    development: {
+    homechain: {
       host: 'localhost',
-      port: 8545,
+      port: 6545,
       network_id: '*',
     },
     sidechain: {
       host: 'localhost',
       port: 7545,
       network_id: '*',
-    }
+    },
     rinkeby: {
       host: 'localhost',
       port: 8545,
