@@ -1,14 +1,14 @@
-extern crate web3;
 extern crate ethabi;
+extern crate web3;
 
 use web3::futures::{Future, Stream};
-use web3::types::{FilterBuilder, H256, Bytes, Address, U256};
+use web3::types::{Address, Bytes, FilterBuilder, H256, U256};
 use web3::contract::{Contract, Options};
 use web3::transports::ws::WebSocket;
 use web3::api::Web3;
-use ethabi::{EventParam, Event, ParamType, Hash};
+use ethabi::{Event, EventParam, Hash, ParamType};
 use std::sync::{mpsc, Arc, Mutex};
-use std::{thread};
+use std::thread;
 use std::fs::File;
 
 #[derive(Clone)]
@@ -21,12 +21,20 @@ pub struct Bridge {
 }
 
 impl Bridge {
-    pub fn new(wallet: &str, password: &str, abi_path: &str, main: Network, side: Network) -> Bridge {
+    pub fn new(
+        wallet: &str,
+        password: &str,
+        abi_path: &str,
+        main: Network,
+        side: Network,
+    ) -> Bridge {
         let start = match wallet.starts_with("0x") {
             true => 2,
-            false => 0
+            false => 0,
         };
-        let verifier_wallet: Address = wallet[start..40+start].parse().expect("Invalid verifier address.");
+        let verifier_wallet: Address = wallet[start..40 + start]
+            .parse()
+            .expect("Invalid verifier address.");
         let abi = File::open(abi_path).expect("ABI not found.");
         let contract = ethabi::Contract::load(abi).unwrap();
 
@@ -63,7 +71,14 @@ impl Bridge {
         let withdraw_main = thread::spawn(move || {
             let mut iter = to_main_rx.iter();
             while let Some(transfer) = iter.next() {
-                main_withdraw.withdraw(&abi, &wallet, &password, &transfer.tx_hash, &transfer.sender, *transfer.amount);
+                main_withdraw.withdraw(
+                    &abi,
+                    &wallet,
+                    &password,
+                    &transfer.tx_hash,
+                    &transfer.sender,
+                    *transfer.amount,
+                );
             }
         });
 
@@ -82,7 +97,14 @@ impl Bridge {
         let withdraw_side = thread::spawn(move || {
             let mut iter = to_side_rx.iter();
             while let Some(transfer) = iter.next() {
-                side_withdraw.withdraw(&abi, &wallet, &password, &transfer.tx_hash, &transfer.sender, *transfer.amount);
+                side_withdraw.withdraw(
+                    &abi,
+                    &wallet,
+                    &password,
+                    &transfer.tx_hash,
+                    &transfer.sender,
+                    *transfer.amount,
+                );
             }
         });
 
@@ -134,12 +156,36 @@ impl Network {
         *self.tx.lock().unwrap() = Some(sender);
     }
 
-    pub fn withdraw(&self, abi: &ethabi::Contract, wallet: &Address, password: &str, tx_hash: &H256, sender: &Address, value: U256) {
-        println!("{}: Withdrawing {} to {:?}.", self.name.clone(), value, sender);
-        let contract = Contract::new(self.web3.eth(), self.contracts.relay_addr.clone(), abi.clone());
-        self.web3.personal().unlock_account(wallet.clone(), password, Some(0xffff))
+    pub fn withdraw(
+        &self,
+        abi: &ethabi::Contract,
+        wallet: &Address,
+        password: &str,
+        tx_hash: &H256,
+        sender: &Address,
+        value: U256,
+    ) {
+        println!(
+            "{}: Withdrawing {} to {:?}.",
+            self.name.clone(),
+            value,
+            sender
+        );
+        let contract = Contract::new(
+            self.web3.eth(),
+            self.contracts.relay_addr.clone(),
+            abi.clone(),
+        );
+        self.web3
+            .personal()
+            .unlock_account(wallet.clone(), password, Some(0xffff))
             .then(|_| {
-                return contract.call("processWithdrawal", (tx_hash.clone(), sender.clone(), value), wallet.clone(), Options::default());
+                return contract.call(
+                    "processWithdrawal",
+                    (tx_hash.clone(), sender.clone(), value),
+                    wallet.clone(),
+                    Options::default(),
+                );
             })
             .wait()
             .unwrap();
@@ -155,12 +201,15 @@ impl Network {
         let event_prototype = Contracts::generate_topic_filter();
 
         // Create filter on our subscription
-        let fb: FilterBuilder = FilterBuilder::default()
-            .address(token);
+        let fb: FilterBuilder = FilterBuilder::default().address(token);
 
         // Start listening to events
         // Open Websocket and create RPC conn
-        let mut sub = self.web3.eth_subscribe().subscribe_logs(fb.build()).wait().unwrap();
+        let mut sub = self.web3
+            .eth_subscribe()
+            .subscribe_logs(fb.build())
+            .wait()
+            .unwrap();
 
         println!("Got subscription id: {:?}", sub.id());
 
@@ -213,22 +262,26 @@ pub struct Contracts {
     relay_addr: Address,
 }
 
-impl Contracts{
+impl Contracts {
     pub fn new(token: &str, relay: &str) -> Contracts {
         let mut start = match relay.starts_with("0x") {
             true => 2,
-            false => 0
+            false => 0,
         };
         // Create an H160 address from address
-        let token_hex: Address = token[start..40+start].parse().expect("Invalid token address.");
+        let token_hex: Address = token[start..40 + start]
+            .parse()
+            .expect("Invalid token address.");
 
         start = match token.starts_with("0x") {
             true => 2,
-            false => 0
+            false => 0,
         };
-        let relay_hex: Address = relay[start..40+start].parse().expect("Invalid relay address.");
+        let relay_hex: Address = relay[start..40 + start]
+            .parse()
+            .expect("Invalid relay address.");
 
-        Contracts{
+        Contracts {
             token_addr: token_hex,
             relay_addr: relay_hex,
         }
@@ -237,7 +290,7 @@ impl Contracts{
     ///
     /// # Generate Topic Filter
     ///
-    /// This generates the topics[0] filter for listening to a Transfer event. 
+    /// This generates the topics[0] filter for listening to a Transfer event.
     /// Once filters work again, this will be a method and generate the whole
     /// (Option<Vec<H256>, Option<Vec<H256>, Option<Vec<H256>, Option<Vec<H256>)
     /// value.
