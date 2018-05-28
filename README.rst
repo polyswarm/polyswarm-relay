@@ -1,4 +1,4 @@
-PolySwarm Alpha
+PolySwarm Beta
 ===============
 
 *API under development and may change*
@@ -97,9 +97,6 @@ Examples
 
 **Get artifact**
 `curl http://localhost:31337/artifacts/QmTcKufUeYYdT4YYAZsv25FNdeJ9q2NyCKLW3CeN4H69fw/0`
-
-**Unlock account (likely to change)**
-`curl -H 'Content-Type: application/json' -d '{"password": "password"}' http://localhost:31337/accounts/af8302a3786a35abeddf19758067adc9a23597e5/unlock`
 
 **Post bounty**
 `curl -H 'Content-Type: application/json' -d '{"amount": "62500000000000000", "uri": "QmYNmQKp6SuaVrpgWRsPTgCQCnpxUYGq76YEKBXuj2N4H6", "duration": 10}' http://localhost:31337/bounties`
