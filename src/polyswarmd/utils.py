@@ -10,6 +10,10 @@ def int_to_bool_list(i):
     return [x == '1' for x in s[::-1]]
 
 
+def uint256_list_to_hex_string(us):
+    return hex(sum([x << (256 * n) for n, x in enumerate(us)]))
+
+
 def bounty_to_dict(bounty):
     return {
         'guid': str(uuid.UUID(int=bounty[0])),
@@ -18,7 +22,10 @@ def bounty_to_dict(bounty):
         'uri': bounty[3],
         'expiration': bounty[4],
         'resolved': bounty[5],
-        'verdicts': int_to_bool_list(bounty[6]),
+        'bloom': uint256_list_to_hex_string(bounty[6]),
+        'voters': bounty[7],
+        'verdicts': int_to_bool_list(bounty[8]),
+        'bloom_votes': bounty[9],
     }
 
 
