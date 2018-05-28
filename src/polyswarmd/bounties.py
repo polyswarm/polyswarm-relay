@@ -174,6 +174,9 @@ def post_bounties_guid_vote(guid):
         return failure('Source account required', 401)
     account = web3.toChecksumAddress(account)
 
+    if not eth.is_arbiter(account):
+        return failure('Account is not an arbiter', 403)
+
     schema = {
         'type': 'object',
         'properties': {
@@ -224,6 +227,9 @@ def post_bounties_guid_settle(guid):
     if not account or not web3.isAddress(account):
         return failure('Source account required', 401)
     account = web3.toChecksumAddress(account)
+
+    if not eth.is_arbiter(account):
+        return failure('Account is not an arbiter', 403)
 
     tx = transaction_queue.send_transaction(
         bounty_registry.functions.settleBounty(guid.int), account).get()

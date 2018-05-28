@@ -34,17 +34,21 @@ def check_transaction(tx):
     return receipt and receipt.status == 1
 
 
+def is_arbiter(account):
+    return bounty_registry.call().isArbiter(account)
+
+
 def bounty_fee():
-    return 62500000000000000
+    return bounty_registry.call().BOUNTY_FEE()
 
 
 def assertion_fee():
-    return 62500000000000000
+    return bounty_registry.call().ASSERTION_FEE()
 
 
 def bounty_amount_min():
-    return 62500000000000000
+    return bounty_registry.call().BOUNTY_AMOUNT_MINIMUM()
 
 
 def assertion_bid_min():
-    return 62500000000000000
+    return bounty_registry.call().ASSERTION_BID_MINIMUM()
