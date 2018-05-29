@@ -16,7 +16,7 @@ contract ERC20Relay is Ownable {
     mapping (address => uint256) private verifierAddressToIndex;
 
     /* Withdrawals */
-    uint256 constant GAS_PRICE = 2 * 10 ** 9;
+    uint256 constant GAS_PRICE = 20 * 10 ** 9;
     uint256 constant ESTIMATED_GAS_PER_VERIFIER = 54301;
     uint256 constant ESTIMATED_GAS_PER_WITHDRAWAL= 73458;
     uint256 public nctEthExchangeRate;

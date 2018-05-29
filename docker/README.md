@@ -1,4 +1,4 @@
-This set of Dockerfiles and docker-compose.yml set up two ethereum networks and
+This set of Dockerfiles and docker-compose configs set up two ethereum networks and
 token relays between them.
 
 In ascii art this looks like the following:

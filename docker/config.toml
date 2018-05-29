@@ -1,0 +1,13 @@
+[relay]
+    anchor_frequency = 100
+    confirmations = 20
+
+[relay.homechain]
+    ws-uri = "ws://homechain:8546"
+    token = "0x7dd1b7163c4f42326a005fb5db21afca43766985"
+    relay = "0x37701e7cde1b2ae0251934466572abec446e9e1c"
+
+[relay.sidechain]
+    ws-uri = "ws://sidechain:8546"
+    token = "0x82a3f4685540e605d5ce9144108861aba2ed66ba"
+    relay = "0x0f987872df9356fae7915a0d218fa8ccdff58124"

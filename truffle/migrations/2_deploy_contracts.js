@@ -9,11 +9,12 @@ module.exports = function(deployer, network, accounts) {
   const NCT_ETH_EXCHANGE_RATE = 80972;
 
   // See docker setup
+  const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
   const FEE_WALLET = '0x0f57baedcf2c84383492d1ea700835ce2492c48a';
   const VERIFIER_ADDRESSES = [
-    '0x31c99a06cabed34f97a78742225f4594d1d16677',
-    '0x6aae54b496479a25cacb63aa9dc1e578412ee68c',
-    '0x850a2f35553f8a79da068323cbc7c9e1842585d5',
+    '0xe6cc4b147e3b1b59d2ac2f2f3784bbac1774bbf7',
+    '0x28fad0751f8f406d962d27b60a2a47ccceeb8096',
+    '0x87cb0b17cf9ebcb0447da7da55c703812813524b',
   ];
 
   if (network === 'mainnet') {
@@ -25,29 +26,31 @@ module.exports = function(deployer, network, accounts) {
       FEE_WALLET, VERIFIER_ADDRESSES);
   } else {
     return deployer.deploy(NectarToken).then(() => {
-      return deployer.deploy(ERC20Relay, NectarToken.address, NCT_ETH_EXCHANGE_RATE,
-        FEE_WALLET, VERIFIER_ADDRESSES).then(() => {
-
-        // If we're on the homechain, assign all tokens to the user, else assign
-        // all tokens to the relay contract for disbursal on the sidechain
-        //
-        // Else for testing purposes, give both the user and the relay tokens
-        if (network === 'homechain') {
+      // If we're on the homechain, assign all tokens to the user, else assign
+      // all tokens to the relay contract for disbursal on the sidechain
+      //
+      // Else for testing purposes, give both the user and the relay tokens
+      if (network === 'homechain') {
+        return deployer.deploy(ERC20Relay, NectarToken.address, NCT_ETH_EXCHANGE_RATE, FEE_WALLET, VERIFIER_ADDRESSES).then(() => {
           return NectarToken.deployed().then(token => {
             return token.mint(accounts[0], TOTAL_SUPPLY);
           });
-        } else if (network == 'sidechcain') {
+        });
+      } else if (network == 'sidechain') {
+        return deployer.deploy(ERC20Relay, NectarToken.address, 0, ZERO_ADDRESS, VERIFIER_ADDRESSES).then(() => {
           return NectarToken.deployed().then(token => {
             return token.mint(ERC20Relay.address, TOTAL_SUPPLY);
           });
-        } else if (network == 'development') {
+        });
+      } else if (network == 'development') {
+        return deployer.deploy(ERC20Relay, NectarToken.address, NCT_ETH_EXCHANGE_RATE, FEE_WALLET, VERIFIER_ADDRESSES).then(() => {
           return NectarToken.deployed().then(token => {
             return token.mint(accounts[0], TOTAL_SUPPLY).then(() => {;
               return token.mint(ERC20Relay.address, TOTAL_SUPPLY);
             });
           });
-        }
-      });
+        });
+      }
     });
   }
 };
