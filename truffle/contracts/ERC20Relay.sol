@@ -17,7 +17,8 @@ contract ERC20Relay is Ownable {
 
     /* Withdrawals */
     uint256 constant GAS_PRICE = 2 * 10 ** 9;
-    uint256 constant ESTIMATED_GAS = 0;
+    uint256 constant ESTIMATED_GAS_PER_VERIFIER = 54301;
+    uint256 constant ESTIMATED_GAS_PER_WITHDRAWAL= 73458;
     uint256 public nctEthExchangeRate;
     uint256 public fees;
     address public feeWallet;
@@ -95,6 +96,7 @@ contract ERC20Relay is Ownable {
         verifierAddressToIndex[addr] = index.sub(1);
 
         requiredVerifiers = calculateRequiredVerifiers();
+        fees = calculateFees();
     }
 
     // TODO: Allow existing verifiers to vote on adding/removing others
@@ -110,6 +112,7 @@ contract ERC20Relay is Ownable {
         verifiers.length--;
 
         requiredVerifiers = calculateRequiredVerifiers();
+        fees = calculateFees();
     }
 
     function activeVerifiers() public view returns (address[]) {
@@ -151,7 +154,9 @@ contract ERC20Relay is Ownable {
     }
 
     function calculateFees() internal view returns (uint256) {
-        return GAS_PRICE.mul(ESTIMATED_GAS).mul(nctEthExchangeRate);
+        uint256 estimatedGas = ESTIMATED_GAS_PER_VERIFIER.mul(numberOfVerifiers())
+            .add(ESTIMATED_GAS_PER_WITHDRAWAL);
+        return estimatedGas.mul(GAS_PRICE).mul(nctEthExchangeRate);
     }
 
     function approveWithdrawal(
