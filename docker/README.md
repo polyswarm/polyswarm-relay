@@ -42,3 +42,13 @@ Overview of Ethereum accounts:
 - 0x28fad0751f8f406d962d27b60a2a47ccceeb8096 relay 1
 - 0x87cb0b17cf9ebcb0447da7da55c703812813524b relay 2
 ```
+
+To run:
+
+1. `docker-compose -f compose/sidechain.yml -f compose/homechain.yml -f compose/networks.yml up --build`
+1. From `truffle` directory: `truffle migrate --reset --network=homechain`
+1. From `truffle` directory: `truffle migrate --reset --network=sidechain`
+1. Update `docker/config.toml`
+1. Stop `docker-compose` (Ctrl-c)
+1. `docker-compose -f compose/sidechain.yml -f compose/homechain.yml -f compose/relay.yml -f compose/networks.yml up --build`
+1. Interact with contracts through `truffle console --network={homechain|sidechain]`

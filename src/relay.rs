@@ -296,7 +296,7 @@ impl<T: DuplexTransport + 'static> Network<T> {
                             },
                             |tx_hash| {
                                 let tx = tx.clone();
-                                let destination: Address = log.topics[2].into();
+                                let destination: Address = log.topics[1].into();
                                 let amount: U256 = log.data.0[..32].into();
 
                                 info!(
