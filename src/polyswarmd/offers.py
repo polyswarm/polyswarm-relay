@@ -16,6 +16,7 @@ offers = Blueprint('offers', __name__)
 
 @offers.route('', methods=['POST'])
 def create_offer_channel():
+    print('fjsdljfsljfsldfjsldkfjsldfsldfjsldfhsdhfsdkjfhsdlkfh6787678765678987656789*&^%^&*(*&^%$#$%^&*()(*&^%$%^&*')
     account = request.args.get('account')
     if not account or not web3.isAddress(account):
         return failure('Source account required', 401)
@@ -94,11 +95,12 @@ def create_offer_channel():
     processed = offer_msig.events.CommunicationsSet().processReceipt(receipt)
 
     # TODO: Fix encoding
-    success_dict['websocketUri'] = dict(processed[0]['args'])['websocketUri']
+    success_dict['websocketUri'] = web3.toText(dict(processed[0]['args'])['websocketUri'])
 
     # convert to string for javascipt
     success_dict['guid'] = str(success_dict['guid'])
 
+    print(success_dict)
     return success(success_dict)
 
 
