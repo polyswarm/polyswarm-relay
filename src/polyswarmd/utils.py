@@ -59,3 +59,10 @@ def new_verdict_event_to_dict(new_verdict_event):
         'bounty_guid': str(uuid.UUID(int=new_verdict_event.bountyGuid)),
         'verdicts': int_to_bool_list(new_verdict_event.verdicts),
     }
+
+def new_offer_contract_event_to_dict(registry_event):
+    return {
+        'msig_address': registry_event[0],
+        'ambassador': registry_event[1],
+        'expert': registry_event[2]
+    }
