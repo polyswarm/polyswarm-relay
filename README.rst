@@ -85,9 +85,23 @@ Steps:
 Docker
 ------
 
-0) Build a docker image from ``docker/Dockerfile``, tag as
-    ``polyswarm/polyswarmd``
-1) Run with ``docker-compose -f docker/docker-compose.yml up``
+0) Build docker image first.
+```
+$ sudo docker build -t polyswarm/polyswarmd -f docker/Dockerfile .
+```
+
+1) Run with the following:
+
+If test mode:
+ ```
+$ sudo docker-compose -f docker/compose/contract.yml -f docker/compose/main.yml up
+```
+
+In production mode:
+
+```
+$ sudo docker-compose -f docker/compose/contract.yml -f docker/compose/priv_testnet.yml up
+```
 
 Examples
 --------

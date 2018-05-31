@@ -1,0 +1,12 @@
+version: '3'
+services:
+    contract:
+       image: "polyswarm/contract"
+       build: "."
+       environment:
+           - ETH_URI=http://geth:8545
+       command: migrate
+       volumes:
+           - "contract:/usr/src/app/truffle"
+volumes:
+    contract:
