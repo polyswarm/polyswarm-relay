@@ -40,10 +40,12 @@ start_testrpc
 (cd truffle && truffle migrate --reset)
 nectar_address=$(jq '.["networks"]["1337"]["address"]' < truffle/build/contracts/NectarToken.json)
 bounty_registry_address=$(jq '.["networks"]["1337"]["address"]' < truffle/build/contracts/BountyRegistry.json)
+offer_registry_address=$(jq '.["networks"]["1337"]["address"]' < truffle/build/contracts/OfferRegistry.json)
 
 cat > polyswarmd.test.cfg <<- EOF
 NECTAR_TOKEN_ADDRESS = $nectar_address
 BOUNTY_REGISTRY_ADDRESS = $bounty_registry_address
+OFFER_REGISTRY_ADDRESS = $offer_registry_address
 EOF
 
 cat polyswarmd.test.cfg
