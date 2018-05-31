@@ -1,0 +1,5 @@
+#!/usr/bin/env ruby
+
+keyword = ARGV[0]
+res     = ARGV[1]
+puts /#{keyword}\:.+/.match(res).to_s.gsub("#{keyword}: ", "")

@@ -13,3 +13,9 @@ dist/
 deb_dist/
 polyswarmd.spec
 polyswarmd.egg-info/
+polyswarmd.dev.cfg
+polyswarmd.test.cfg
+polyswarmd.spec
+polyswarmd.egg-info/
+docker/contract/polyswarm-contracts/
+docker/contract/node_modules/

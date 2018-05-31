@@ -1,0 +1,70 @@
+#!/usr/bin/env ruby
+
+require 'colorize'
+
+POLYSWARMD  = "/usr/src/app"
+TRUFFLE     = "#{POLYSWARMD}/truffle"
+SCRIPTS     = "#{TRUFFLE}/scripts"
+MINT_TOKENS = "#{SCRIPTS}/mint_tokens.sh"
+
+def help
+  puts
+  puts "-a               ... iterate through all addresses and throw clean artifacts"
+  puts "[artifacts path] ... inspect specific artifact"
+  puts
+  abort
+end
+
+def post_artifact_to_ipfs(artifact)
+  cmd = "scripts/upload_an_artifact.sh #{artifact}"
+  puts cmd
+  res = `#{cmd}`
+  puts res.cyan
+  ipfs_hash = /\s["].+["],/.match(res).to_s.gsub('"result": ', "").gsub('"', "").gsub(",", "").strip
+  
+  post_bounty_cmd = File.read("scripts/tmp/post_bounty.tmp").gsub("$1", ipfs_hash)
+  File.open("scripts/post_bounty.sh", "w") do |f|
+    f.puts post_bounty_cmd
+  end
+end
+
+addresses = `curl -s http://localhost:31337/accounts`.split("\n").map{ |l|
+  /[0-9a-zA-Z]+/.match(l).to_s.strip.chomp
+}.select{|l| l != "" && !(/(result|status)/ =~ l)}
+
+option = ARGV[0] || help
+
+case option 
+when "-h" || nil
+  help()
+else
+  sleep(15)
+  system "/usr/src/app/mint_tokens.sh"
+#  address = addresses[0]
+#  #
+#  # UNLOCK ACCOUNT
+#  #
+#  unless address 
+#    abort("\n\naddress not found\n\n")
+#  end
+#
+#  puts("unlocking #{address} ...")
+#  unlock_account_cmd = File.read("scripts/tmp/unlock_account.tmp").gsub("$1", address)
+#  File.open("scripts/unlock_account.sh", "w") do |f|
+#    f.puts unlock_account_cmd
+#  end
+#  system "./scripts/unlock_account.sh"
+#  
+#  #
+#  # UPLOAD ARTIFACT (NEW)
+#  #
+#  puts("uploading artifact ...")
+#  abort ("File does not exist: #{option}") unless File.exist?(option)
+#  post_artifact_to_ipfs(option)
+#
+#  # system "truffle console --network development"  
+#  #
+#  # POST BOUNTY
+#  # 
+#  puts `./scripts/post_bounty.sh`.blue
+end

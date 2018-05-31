@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+
+#
+# This script does launch everything necessary
+#
+echo "@trendd: ARGUMENT: $1"
+
+if [ "$1" == "integration" ]; then
+    sleep 20 
+    rspec spec/integration/micro_engine_spec.rb
+elif [ "$1" == "unit"  ]; then
+    echo unit
+    rspec spec/unit_test
+else
+    sleep 15
+    ruby main.rb
+fi
