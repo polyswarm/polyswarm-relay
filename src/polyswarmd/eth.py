@@ -5,7 +5,7 @@ import gevent
 from web3 import Web3, HTTPProvider
 from web3.middleware import geth_poa_middleware
 
-from polyswarmd.config import eth_uri, nectar_token_address, bounty_registry_address, whereami
+from polyswarmd.config import eth_uri, nectar_token_address, bounty_registry_address, offer_registry_address, whereami
 
 web3 = Web3(HTTPProvider(eth_uri))
 web3.middleware_stack.inject(geth_poa_middleware, layer=0)
@@ -28,6 +28,10 @@ bounty_registry = bind_contract(bounty_registry_address,
                                 os.path.join('truffle', 'build', 'contracts',
                                              'BountyRegistry.json'))
 
+offer_registry = bind_contract(offer_registry_address, os.path.join('truffle', 'build', 'contracts',
+                                             'OfferRegistry.json'))
+
+offer_msig_json = os.path.join('truffle', 'build', 'contracts', 'OfferMultiSig.json')
 
 def check_transaction(tx):
     receipt = web3.eth.waitForTransactionReceipt(tx)

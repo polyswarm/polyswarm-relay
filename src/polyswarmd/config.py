@@ -9,7 +9,7 @@ ipfs_uri = ''
 network = ''
 nectar_token_address = ''
 bounty_registry_address = ''
-
+offer_registry_address = ''
 
 def whereami():
     if hasattr(sys, 'frozen') and sys.frozen in ('windows_exe', 'console_exe'):
@@ -19,7 +19,7 @@ def whereami():
 
 
 def init_config():
-    global eth_uri, ipfs_uri, network, nectar_token_address, bounty_registry_address
+    global eth_uri, ipfs_uri, network, nectar_token_address, bounty_registry_address, offer_registry_address
 
     load_dotenv(dotenv_path=os.path.join(whereami(), '.env'))
 
@@ -36,12 +36,14 @@ def init_config():
         y = yaml.load(f.read())
         nectar_token_address = os.environ.get('NECTAR_TOKEN_ADDRESS', y['nectar_token_address'])
         bounty_registry_address = os.environ.get('BOUNTY_REGISTRY_ADDRESS', y['bounty_registry_address'])
+        offer_registry_address = os.environ.get('OFFER_REGISTRY_ADDRESS', y['offer_registry_address'])
 
 def set_config(**kwargs):
-    global eth_uri, ipfs_uri, network, nectar_token_address, bounty_registry_address
+    global eth_uri, ipfs_uri, network, nectar_token_address, bounty_registry_address, offer_registry_address
 
     eth_uri = kwargs.get('eth_uri', 'http://localhost:8545')
     ipfs_uri = kwargs.get('ipfs_uri', 'http://localhost:5001')
     network = kwargs.get('network', 'test')
     nectar_token_address = kwargs.get('nectar_token_address', '')
     bounty_registry_address = kwargs.get('bounty_registry_address', '')
+    offer_registry_address = kwargs.get('offer_registry_address', '')
