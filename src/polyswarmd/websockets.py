@@ -9,7 +9,7 @@ from hexbytes import HexBytes
 
 from polyswarmd.eth import web3, bounty_registry
 from polyswarmd.utils import new_bounty_event_to_dict, new_assertion_event_to_dict, new_verdict_event_to_dict
-
+from 
 
 # TODO: This needs some tweaking to work for multiple accounts / concurrent
 # requests, mostly dealing with nonce calculation
@@ -153,6 +153,63 @@ def init_websockets(app):
                 txhash = web3.eth.sendRawTransaction(HexBytes(data))
                 print('GOT TXHASH:', txhash)
                 transaction_queue.complete(id_, txhash)
+
+        finally:
+            qgl.kill()
+
+    @sockets.route('/messages')
+    def transactions(ws):
+        def queue_greenlet():
+            for (id_, msg, account) in message_queue:
+                ws.send(json.dumps({'id': id_, 'data': msg, 'account': account}))
+
+        qgl = gevent.spawn(queue_greenlet)
+
+        # message state object
+
+        schema = {
+            'type': 'object',
+            'properties': {
+                'type': {
+                    'type': 'string',
+                },
+                'state': {
+                    'type': 'string',
+                    'minLength': 32,
+                },
+                'r': {
+                    'type': 'string',
+                    'minLength': 64,
+                },
+                'v': {
+                    'type': 'integer',
+                    'minimum': 0,
+                },
+                's': {
+                    'type': 'string',
+                    'minLength': 64
+                },
+            },
+            'required': ['type', 'state', 'r', 'v', 's'],
+        }
+
+        try:
+            while not ws.closed:
+                msg = ws.receive()
+                if not msg:
+                    break
+
+                body = json.loads(msg)
+                try:
+                    jsonschema.validate(body, schema)
+                except ValidationError as e:
+                    print('Invalid JSON: ' + e.message)
+
+                state = body['state']
+                account = body['account']
+                
+
+                message_queue.complete(state, account)
 
         finally:
             qgl.kill()
