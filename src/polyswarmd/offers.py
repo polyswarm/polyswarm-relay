@@ -9,14 +9,13 @@ from polyswarmd import eth
 from polyswarmd.artifacts import is_valid_ipfshash
 from polyswarmd.eth import web3, check_transaction, nectar_token, offer_registry, bind_contract, zero_address, offer_msig_json
 from polyswarmd.response import success, failure
-from polyswarmd.websockets import transaction_queue
-from polyswarmd.utils import bool_list_to_int, bounty_to_dict, assertion_to_dict, new_bounty_event_to_dict, new_assertion_event_to_dict, new_verdict_event_to_dict, new_offer_contract_event_to_dict
+from polyswarmd.websockets import transaction_queue, WebsocketClient
+from polyswarmd.utils import bool_list_to_int, bounty_to_dict, assertion_to_dict, new_bounty_event_to_dict, new_assertion_event_to_dict, new_verdict_event_to_dict, channel_to_dict
 
 offers = Blueprint('offers', __name__)
 
 @offers.route('', methods=['POST'])
 def create_offer_channel():
-    print('fjsdljfsljfsldfjsldkfjsldfsldfjsldfhsdhfsdkjfhsdlkfh6787678765678987656789*&^%^&*(*&^%$#$%^&*()(*&^%$%^&*')
     account = request.args.get('account')
     if not account or not web3.isAddress(account):
         return failure('Source account required', 401)
@@ -83,7 +82,7 @@ def create_offer_channel():
     offer_msig = bind_contract(msig_address, offer_msig_json)
 
     tx = transaction_queue.send_transaction(
-        offer_msig.functions.setCommunicationUri(web3.toBytes(text = public_eth_uri)),
+        offer_msig.functions.setCommunicationUri(web3.toHex(text = public_eth_uri)),
         account).get()
 
     if not check_transaction(tx):
@@ -94,24 +93,22 @@ def create_offer_channel():
 
     processed = offer_msig.events.CommunicationsSet().processReceipt(receipt)
 
-    # TODO: Fix encoding
-    success_dict['websocketUri'] = web3.toText(dict(processed[0]['args'])['websocketUri'])
-
+    success_dict['websocketUri'] = offer_msig.functions.websocketUri().call()
+    success_dict['websocketUri'] = web3.toText(success_dict['websocketUri']).replace('\u0000', '')
     # convert to string for javascipt
-    success_dict['guid'] = str(success_dict['guid'])
+    success_dict['guid'] = str(uuid.UUID(int=success_dict['guid']))
 
-    print(success_dict)
     return success(success_dict)
 
 
-@offers.route('/<int:guid>/open', methods=['POST'])
+@offers.route('/<uuid:guid>/open', methods=['POST'])
 def open(guid):
     account = request.args.get('account')
     if not account or not web3.isAddress(account):
         return failure('Source account required', 401)
     account = web3.toChecksumAddress(account)
 
-    offer_channel = new_offer_contract_event_to_dict(offer_registry.functions.guidToChannel(guid).call())
+    offer_channel = channel_to_dict(offer_registry.functions.guidToChannel(guid.int).call())
     msig_address = offer_channel['msig_address']
 
     body = request.get_json()
@@ -179,14 +176,14 @@ def open(guid):
 
     return success(data)
 
-@offers.route('/<int:guid>/join', methods=['POST'])
+@offers.route('/<uuid:guid>/join', methods=['POST'])
 def join(guid):
     account = request.args.get('account')
     if not account or not web3.isAddress(account):
         return failure('Source account required', 401)
     account = web3.toChecksumAddress(account)
 
-    offer_channel = new_offer_contract_event_to_dict(offer_registry.functions.guidToChannel(guid).call())
+    offer_channel = channel_to_dict(offer_registry.functions.guidToChannel(guid.int).call())
     msig_address = offer_channel['msig_address']
 
     body = request.get_json()
@@ -247,14 +244,14 @@ def join(guid):
 
     return success(data)
 
-@offers.route('/<int:guid>/close', methods=['POST'])
+@offers.route('/<uuid:guid>/close', methods=['POST'])
 def close(guid):
     account = request.args.get('account')
     if not account or not web3.isAddress(account):
         return failure('Source account required', 401)
     account = web3.toChecksumAddress(account)
 
-    offer_channel = new_offer_contract_event_to_dict(offer_registry.functions.guidToChannel(guid).call())
+    offer_channel = channel_to_dict(offer_registry.functions.guidToChannel(guid.int).call())
     msig_address = offer_channel['msig_address']
 
     body = request.get_json()
@@ -267,15 +264,15 @@ def close(guid):
                 'minLength': 32,
             },
             'r': {
-                'type': 'list',
+                'type': 'array',
                 'minLength': 2,
             },
             'v': {
-                'type': 'list',
+                'type': 'array',
                 'minimum': 2,
             },
             's': {
-                'type': 'list',
+                'type': 'array',
                 'minLength': 2
             }
         },
@@ -317,13 +314,13 @@ def close(guid):
     return success(data)
 
 
-@offers.route('/<int:guid>/settle', methods=['POST'])
+@offers.route('/<uuid:guid>/settle', methods=['POST'])
 def settle(guid):
     account = request.args.get('account')
     if not account or not web3.isAddress(account):
         return failure('Source account required', 401)
     account = web3.toChecksumAddress(account)
-    offer_channel = new_offer_contract_event_to_dict(offer_registry.functions.guidToChannel(guid).call())
+    offer_channel = channel_to_dict(offer_registry.functions.guidToChannel(guid.int).call())
     msig_address = offer_channel['msig_address']
 
     body = request.get_json()
@@ -336,15 +333,15 @@ def settle(guid):
                 'minLength': 32,
             },
             'r': {
-                'type': 'list',
+                'type': 'array',
                 'minLength': 2,
             },
             'v': {
-                'type': 'list',
+                'type': 'array',
                 'minimum': 2,
             },
             's': {
-                'type': 'list',
+                'type': 'array',
                 'minLength': 2
             }
         },
@@ -384,14 +381,14 @@ def settle(guid):
 
     return success(data)
 
-@offers.route('/<int:guid>/challenge', methods=['POST'])
+@offers.route('/<uuid:guid>/challenge', methods=['POST'])
 def challange(guid):
     account = request.args.get('account')
     if not account or not web3.isAddress(account):
         return failure('Source account required', 401)
     account = web3.toChecksumAddress(account)
 
-    offer_channel = new_offer_contract_event_to_dict(offer_registry.functions.guidToChannel(guid).call())
+    offer_channel = channel_to_dict(offer_registry.functions.guidToChannel(guid.int).call())
     msig_address = offer_channel['msig_address']
 
     body = request.get_json()
@@ -404,15 +401,15 @@ def challange(guid):
                 'minLength': 32,
             },
             'r': {
-                'type': 'list',
+                'type': 'array',
                 'minLength': 2,
             },
             'v': {
-                'type': 'list',
+                'type': 'array',
                 'minimum': 2,
             },
             's': {
-                'type': 'list',
+                'type': 'array',
                 'minLength': 2
             }
         },
@@ -454,16 +451,29 @@ def challange(guid):
 
     return success(data)
 
-@offers.route('/<int:guid>', methods=['GET'])
+@offers.route('/<uuid:guid>/message', methods=['POST'])
+def message_sender(guid):
+
+    offer_channel = offer_registry.functions.guidToChannel(guid.int).call()
+    offer_msig = bind_contract(offer_channel[0], offer_msig_json)
+    socket_uri = offer_msig.functions.websocketUri().call()
+    socket_uri = web3.toText(socket_uri).replace('\u0000', '')
+    client = WebsocketClient()
+
+    client.run(uri = socket_uri);
+
+    return success({ 'offer_channel': True })
+
+@offers.route('/<uuid:guid>', methods=['GET'])
 def get_channel_address(guid):
-    offer_channel = offer_registry.functions.guidToChannel(guid).call()
+    offer_channel = offer_registry.functions.guidToChannel(guid.int).call()
 
-    return success({ 'offer_channel': new_offer_contract_event_to_dict(offer_channel) })
+    return success({ 'offer_channel': channel_to_dict(offer_channel) })
 
-@offers.route('/<int:guid>/settlementPeriod', methods=['GET'])
+@offers.route('/<uuid:guid>/settlementPeriod', methods=['GET'])
 def get_settlement_period(guid):
-    offer_channel = offer_registry.functions.guidToChannel(guid).call()
-    offer_msig = bind_contract(msig_address, offer_msig_json)
+    offer_channel = channel_to_dict(offer_registry.functions.guidToChannel(guid.int).call())
+    offer_msig = bind_contract(offer_channel['msig'], offer_msig_json)
 
     settlementPeriodEnd = offer_msig.functions.settlementPeriodEnd().call()
 
@@ -472,13 +482,13 @@ def get_settlement_period(guid):
 @offers.route('pending', methods=['GET'])
 def pending():
     offers_pending = []
-    offer_channel = offer_registry.functions.guidToChannel(guid).call()
-    offer_msig = bind_contract(msig_address, offer_msig_json)
+    offer_channel = channel_to_dict(offer_registry.functions.guidToChannel(guid.int).call())
+    offer_msig = bind_contract(offer_channel['msig'], offer_msig_json)
     num_of_offers = offer_registry.functions.getNumberOfOffers().call()
 
     for i in range(0, num_of_offers):
         guid = offer_registry.functions.channelsGuids(i).call()
-        channel_address = offer_registry.guidToChannel(guid).call()
+        channel_address = offer_registry.guidToChannel(guid.int).call()
         offer_msig = bind_contract(channel_address, offer_msig_json)
         pending = offer_msig.functions.isPending().call()
         if pending:
@@ -489,13 +499,14 @@ def pending():
 @offers.route('opened', methods=['GET'])
 def opened(guid):
     offers_opened = []
-    offer_channel = offer_registry.functions.guidToChannel(guid).call()
-    offer_msig = bind_contract(msig_address, offer_msig_json)
+    offer_channel = channel_to_dict(offer_registry.functions.guidToChannel(guid.int).call())
+    offer_msig = bind_contract(offer_channel['msig'], offer_msig_json)
+
     num_of_offers = offer_registry.functions.getNumberOfOffers().call()
 
     for i in range(0, num_of_offers):
         guid = offer_registry.functions.channelsGuids(i).call()
-        channel_address = offer_registry.guidToChannel(guid).call()
+        channel_address = offer_registry.guidToChannel(guid.int).call()
         offer_msig = bind_contract(channel_address, offer_msig_json)
         pending = offer_msig.functions.isOpen().call()
         if pending:
@@ -506,13 +517,14 @@ def opened(guid):
 @offers.route('closed', methods=['GET'])
 def closed(guid):
     offers_closed = []
-    offer_channel = offer_registry.functions.guidToChannel(guid).call()
-    offer_msig = bind_contract(msig_address, offer_msig_json)
+    offer_channel = channel_to_dict(offer_registry.functions.guidToChannel(guid.int).call())
+    offer_msig = bind_contract(offer_channel['msig'], offer_msig_json)
+
     num_of_offers = offer_registry.functions.getNumberOfOffers().call()
 
     for i in range(0, num_of_offers):
         guid = offer_registry.functions.channelsGuids(i).call()
-        channel_address = offer_registry.guidToChannel(guid).call()
+        channel_address = offer_registry.guidToChannel(guid.int).call()
         offer_msig = bind_contract(channel_address, offer_msig_json)
         pending = offer_msig.functions.isClosed().call()
         if pending:
@@ -525,15 +537,15 @@ def myoffers(guid):
     account = request.args.get('account')
     if not account or not web3.isAddress(account):
         return failure('Source account required', 401)
+
     my_offers = []
-    offer_channel = offer_registry.functions.guidToChannel(guid).call()
-    offer_msig = bind_contract(msig_address, offer_msig_json)
+
     num_of_offers = offer_registry.functions.getNumberOfOffers().call()
 
     for i in range(0, num_of_offers):
         guid = offer_registry.functions.channelsGuids(i).call()
-        channel_address = offer_registry.guidToChannel(guid).call()
-        offer_msig = bind_contract(channel_address, offer_msig_json)
+        offer_channel = channel_to_dict(offer_registry.functions.guidToChannel(guid.int).call())
+        offer_msig = bind_contract(offer_channel['msig'], offer_msig_json)
         expert = offer_msig.functions.expert().call()
         ambassador = offer_msig.functions.ambassador().call()
         if account is expert or account is ambassador:

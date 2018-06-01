@@ -15,6 +15,37 @@ transaction_queue = TransactionQueue()
 
 message_queue = MessageQueue()
 
+import websocket
+try:
+    import thread
+except ImportError:
+    import _thread as thread
+
+class WebsocketClient(object):
+    def __init__(self):
+        self.inner = gevent.queue.Queue()
+        self.lock = gevent.lock.Semaphore()
+        self.dict = dict()
+        self.chain_id = int(web3.net.version)
+        self.id_ = 0
+        self.pending = 0
+
+    def on_message(self, ws, message):
+        # send to message queue to be signed
+        print('')
+        print(send_message)
+        print(self.uri)
+        print('')
+        message_queue.send_message(send_message, self.uri)
+
+    def send(self, message):
+        ws.send(message)
+
+    def run(self, uri):
+        self.uri = uri
+        ws = websocket.WebSocketApp(uri, on_message = self.on_message)
+        ws.run_forever()
+
 def init_websockets(app):
     sockets = Sockets(app)
 
@@ -111,15 +142,13 @@ def init_websockets(app):
         finally:
             qgl.kill()
 
-    @sockets.route('/ambassadorSigned')
-    def ambassador_messages(ws):
+    @sockets.route('/messages')
+    def messages(ws):
         def queue_greenlet():
-            for (id_, msg, account) in message_queue:
-                # check guid and send to correct expert here
-                ws.send(json.dumps({'id': id_, 'data': msg, 'account': account}))
+            for (id_, msg, uri) in message_queue:
+                ws.send(json.dumps({'id': id_, 'data': msg, 'uri': uri}))
 
         qgl = gevent.spawn(queue_greenlet)
-
         # message state object
         schema = {
             'type': 'object',
@@ -159,68 +188,12 @@ def init_websockets(app):
                 except ValidationError as e:
                     print('Invalid JSON: ' + e.message)
 
-                state = body['state']
-                account = body['account']
+                if body['uri']:
+                    ws = create_connection(body['uri'])
+                    ws.send(body['data'])
+                    ws.close()
 
-
-                message_queue.complete(state, account)
-
-        finally:
-            qgl.kill()
-
-    @sockets.route('/expertSigned')
-    def expert_messages(ws):
-        def queue_greenlet():
-            for (id_, msg, account) in message_queue:
-                # check guid and send to correct socket uri here
-                ws.send(json.dumps({'id': id_, 'data': msg, 'account': account}))
-
-        qgl = gevent.spawn(queue_greenlet)
-
-        # message state object
-        schema = {
-            'type': 'object',
-            'properties': {
-                'type': {
-                    'type': 'string',
-                },
-                'state': {
-                    'type': 'string',
-                    'minLength': 32,
-                },
-                'r': {
-                    'type': 'string',
-                    'minLength': 64,
-                },
-                'v': {
-                    'type': 'integer',
-                    'minimum': 0,
-                },
-                's': {
-                    'type': 'string',
-                    'minLength': 64
-                },
-            },
-            'required': ['type', 'state', 'r', 'v', 's'],
-        }
-
-        try:
-            while not ws.closed:
-                msg = ws.receive()
-                if not msg:
-                    break
-
-                body = json.loads(msg)
-                try:
-                    jsonschema.validate(body, schema)
-                except ValidationError as e:
-                    print('Invalid JSON: ' + e.message)
-
-                state = body['state']
-                account = body['account']
-
-
-                message_queue.complete(state, account)
+                    message_queue.complete(_id, state)
 
         finally:
             qgl.kill()

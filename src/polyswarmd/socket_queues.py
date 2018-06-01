@@ -67,13 +67,13 @@ class MessageQueue(object):
         self.pending -= 1
         self.release()
 
-    def send_message(self, msg, account):
+    def send_message(self, msg, uri):
         self.acquire()
         self.pending += 1
 
         result = gevent.event.AsyncResult()
         self.dict[self.id_] = result
-        self.inner.put((self.id_, msg, account))
+        self.inner.put((self.id_, msg, uri))
         self.id_ += 1
         self.release()
         return result
