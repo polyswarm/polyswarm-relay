@@ -10,15 +10,18 @@ from polyswarmd.utils import new_transfer_event_to_dict
 
 relay = Blueprint('relay', __name__)
 
+
 @relay.route('/deposit', methods=['POST'])
 def deposit_funds():
     # Move funds from home to side
     return send_funds_from('home')
 
+
 @relay.route('/withdrawal', methods=['POST'])
 def withdraw_funds():
     # Move funds from side to home
     return send_funds_from('side')
+
 
 def send_funds_from(chain):
     # Grab correct versions by chain type
@@ -60,7 +63,7 @@ def send_funds_from(chain):
     tx = transaction_queue.send_transaction(
         nectar_token.functions.transfer(erc20_relay_address, amount),
         account).get()
-    
+
     if not check_transaction(web3, tx):
         return failure(
             'Approve transaction failed, verify parameters and try again', 400)

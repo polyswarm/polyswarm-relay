@@ -67,7 +67,8 @@ def init_websockets(app):
     @sockets.route('/events/<chain>')
     def events(ws, chain):
         if chain != 'side' and chain != 'home':
-            return failure('Chain must be either home or side', 400)
+            print('Chain must be either home or side')
+            ws.close()
 
         web3 = web3_chains[chain]
         bounty_registry = bounty_chains[chain]
@@ -174,7 +175,6 @@ def init_websockets(app):
                         break
 
                 txhash = web3_chains[chain_label].eth.sendRawTransaction(HexBytes(data))
-                print('GOT TXHASH:', txhash)
 
                 queue = transaction_queue.get(chain_label)
                 if queue is not None:
